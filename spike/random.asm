@@ -48,11 +48,14 @@ loop	nop			;Don't do anything else forever.
 local_rtn_ln	equ 0
 local_str_ar	equ 1
 local_rng_rs	equ 3
+local_temp	equ 4
+local_act_rs	equ 6
+
 ascii_nm_off	equ 48
 
 sub_rng	pshx
 	
-	leas	-4, SP		;Creating 3 bytes for local variables
+	leas	-7, SP		;Creating 3 bytes for local variables
 
 	staa	local_rtn_ln, SP
 
@@ -66,9 +69,9 @@ sub_rng	pshx
 
 	staa	local_rng_rs, SP
 
-rng_m	equ	10
-rng_a	equ	56
-rng_c	equ	56
+rng_m	equ	209
+rng_a	equ	100
+rng_c	equ	1
 max_r	equ	10
 
 	;The equation for LCG is Xn+1 = (a*Xn + c) mod m
@@ -103,18 +106,30 @@ start	ldd	$00
 
 	stab	local_rng_rs, SP	;Store the result into memory	
 
-	
-
 	TBA	;A is now the result
-
-
 
 
 	exg	D,Y	;D is now [$00]:[index]
 
-	ldaa	local_rng_rs, SP	
+	;;ldaa	local_rng_rs, SP	
+
+	std	local_temp, SP; We need to save D to do some math.
 
 	
+	ldaa	#$0
+	ldab	local_rng_rs,SP
+
+	ldx	#max_r
+
+	idiv
+
+	stab	local_act_rs, SP
+	
+	ldd	local_temp, SP
+
+	ldaa	local_act_rs, SP
+	
+	ldx	local_str_ar, SP	;Load the string start address
 
 	;D is now [result]:[index]
 
@@ -130,7 +145,7 @@ start	ldd	$00
 
 	bne	start ;It is not, do a looping.	
 
-	leas	+4, SP;Deallocate stack.
+	leas	+7, SP;Deallocate stack.
 
 	pulx
 
