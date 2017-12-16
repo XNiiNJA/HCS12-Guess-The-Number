@@ -48,8 +48,8 @@ results	ds.b	2			;the counts of the compare in binary
 
 timer_count	dc.b	$00
 
-arrb	dc.b	$3F,$06,$5b,$4f,$66,$6D,$7D,$07,$7F,$6F,$00		;$6F,$7F,$07,$7D,$6D,$66,$4f,$5b,$06,$3F,$00
-indx	dc.b	$00,$00,$00,$00					;$3F,$06,$5b,$4f,$66,$6D,$7D,$07,$7F,$6F,$00
+arrb	dc.b	$3F,$06,$5b,$4f,$66,$6D,$7D,$07,$7F,$6F,$00		;7-Seg character array from 9 to 0
+indx	dc.b	$00,$00,$00,$00						;Initial Index array (which character is being pulled from arrb)
 
 digit	dc.b	00			;Which digit we are currently servicing.
 ;timeset	ds.w	1
@@ -517,7 +517,7 @@ decrement
 	pshx				;save timing counters for ISR before decrementing
 	pshy					
 
-	ldx	#indx			;load pointer to 'digit' index (which bit of PTP is set)
+	ldx	#indx			;load pointer to index (which digit will be displayed on current 7-seg display)
 
 					;First, check if we're at 0 (all 3 digits=0?)
 	ldaa	$03, x
