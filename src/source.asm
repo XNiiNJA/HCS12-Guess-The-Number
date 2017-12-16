@@ -1,13 +1,13 @@
 #include "hcs12.inc"
 
-chrY	equ	$59
-chary	equ	$79
-chrN	equ	$4E
-chr0	equ	$30
+chrY	equ	$59	;The 'y' character for the game start prompt
+chary	equ	$79	;The 'Y' character for the game start prompt
+chrN	equ	$4E	;The 'N' character for the game start prompt
+chr0	equ	$30	
 
 	org	$1000
-endline	dc.b	$0D,$0A,0
-wel		dc.b   "Welcome to Code Guesser",$0D,$0A,0
+endline	dc.b	$0D,$0A,0										;A string representation of endline
+wel		dc.b   "Welcome to Code Guesser",$0D,$0A,0						
 instc		dc.b   "Use the DIP switches to choose a diffuculty level",$0D,$0A
 instc2	dc.b	"The length of the code is equal to the level",$0D,$0A
 instc3 	dc.b	"The harder the level the less time you have to find the code!",$0D,$0A
@@ -15,80 +15,74 @@ instc4	dc.b	"Are you ready to begin? [press Y to start]",$0D,$0A,0
 lvlsel	dc.b	"Level %i Selected",$0D,$0A,0
 promp		dc.b	"Enter the Code:",0
 winpromp	dc.b	"Congratulations You Found the Code!!",$0D,$0A,0
-badinput	dc.b	"Oh no! The Code is %i numbers long and only consits of numbers!",$0D,$0A
-		dc.b	"Trust in the FORCE!",$0D,$0A,0
-feedback	dc.b	"Numbers placed correctly : %i",$0D,$0A
+badinput	dc.b	"Oh no! The Code is %i numbers long and only consits of numbers!",$0D,$0A	;The prompt telling the user how long the number is
+		dc.b	"Trust in the FORCE!",$0D,$0A,0							;Good advice.
+feedback	dc.b	"Numbers placed correctly : %i",$0D,$0A						;The string containing feedback
 		dc.b	"Numbers guessed correctly: %i",$0D,$0A,0
 
-losepromp	dc.b	"YOU DIED!!",$0D,$0A,0
+losepromp	dc.b	"YOU DIED!!",$0D,$0A,0								;The fail screen
 
 
-inbuflen	dc.b	$FF
-inbuf 		ds.b	$FF
-		dc.b	0
-       		dc.b  $0D,$0A,0
+inbuflen	dc.b	$FF		;How long the input cn be.
+inbuf 		ds.b	$FF		;The buffer for input
+		dc.b	0		;Forcing the buffer to end.
+       		dc.b  $0D,$0A,0		;Forcing a newline for runaway buffers
 
-code		ds.b	$FF	;The actual code is loaded here.
-		dc.b	$00	;Forcing null byte at end of buffer
+code		ds.b	$FF		;The actual code is loaded here.
+		dc.b	$00		;Forcing null byte at end of buffer
 
-guess		ds.b	$ff
-		dc.b	0
+guess		ds.b	$ff		;The guess buffer.
+		dc.b	0		;Forcing null byte at the end of the buffer
 
-cPlace	ds.b	1	;count of numbers placed correctly in dec
-cGuess	ds.b	1	;count of numbers within actual in dec
+cPlace	ds.b	1			;count of numbers placed correctly in dec
+cGuess	ds.b	1			;count of numbers within actual in dec
 level		ds.b	1
 temp		ds.b	7
 		dc.b	$0D,$0A,0
-results	ds.b	2	;the counts of the compare in binary
+results	ds.b	2			;the counts of the compare in binary
 
 timer_count	dc.b	$00
 
 arrb	dc.b	$3F,$06,$5b,$4f,$66,$6D,$7D,$07,$7F,$6F,$00		;$6F,$7F,$07,$7D,$6D,$66,$4f,$5b,$06,$3F,$00
 indx	dc.b	$00,$00,$00,$00					;$3F,$06,$5b,$4f,$66,$6D,$7D,$07,$7F,$6F,$00
 
-digit	dc.b	00
-timeset	ds.w	1
-smtm	equ	31;$01
-crtn	equ	62;$00AD;$CD3F
+digit	dc.b	00			;Which digit we are currently servicing.
+;timeset	ds.w	1
+smtm	equ	31			;The RTI outer counter start count
+crtn	equ	62			;The RTI inner counter start count
 
-cstart	dc.w	crtn
-smtst	dc.b	smtm
-count	dc.b	0
-segpt	dc.b	0
-curchr	dc.b	0
+cstart	dc.w	crtn			;The RTI inner counter
+smtst	dc.b	smtm			;The RTI outer counter
+;count	dc.b	0	TODO: Not used?		
+;segpt	dc.b	0	TODO: Not used?
+curchr	dc.b	0			;The current char to write to the current 7 seg display
 
-timdcy	equ	6
+timdcy	equ	6			;How quickly does the beeper flatline?
 
-rstspd	equ	1922
-spkrst	dc.w	rstspd
-skrstb	dc.w	rstspd
+rstspd	equ	1922			;The speaker reset initial count
+spkrst	dc.w	rstspd			;The speaker reset current count
+skrstb	dc.w	rstspd			;The speaker current reset count
 
-spkbas	equ	200;240;480
+spkbas	equ	200;240;480		;The length of one beep in RTI cycles
 
-spkon	dc.w	spkbas
+;spkon	dc.w	spkbas	TODO: Not used?	
 
-spkoff	dc.w	1922	;Init in sup
+;spkoff	dc.w	1922	TODO: Not used?
 
-spkcnt	dc.w	spkbas
+spkcnt	dc.w	spkbas			;The current count for the speaker beep length
 
-spkenb	dc.b	$0
+spkenb	dc.b	$0			;When to reset spkcnt
 
-gameov	dc.b	0
+gameov	dc.b	0			;Is the game over?
 
-	org $1600
-
-
-sup	nop			;use this to setup anything 
-	movb	#0,DDRH		;setup port H to input(dip switches)
-	
-	ldaa	#smtm
-	ldab	#crtn
-	mul	
-
-	std	spkoff
+	org $1600	;Starting code at 1600
 
 
-	movw	#$0001, cstart
+sup	nop				;use this to setup anything 
+	movb	#0,DDRH			;setup port H to input(dip switches)
+
+
+	movw	#$0001, cstart		;
 	bset	DDRB,$7F
 	movb	#%00001111,DDRP
 	sei				;disable Global Interrupt Masks
@@ -101,22 +95,30 @@ sup	nop			;use this to setup anything
 	bset	CRGINT,#$80		;enable RTICTL				;
 	movb	#%11111111,PTP
 	movb	#%11111111,PORTB
-	ldx	#indx	
-	ldaa	#$00	
+
+
+	ldx	#indx			;Load the 7 segment display array
+	ldaa	#$00			;Setting the 7 segment display array to 00:00
 	staa	1,x
 	ldaa	#$00
 	staa	2,x
 	ldaa	#$00
 	staa	3,x
-	movb	$00, spkenb		;Disable beeper stuff
+
+	movb	$00, spkenb		;Disable beeper
 	
 
 
 	cli				;Enable Global Interrupt Masks
 
-	rts
+	rts				;Return to main subroutine
 
-start	ldaa	#0
+;*************************
+;***CPRGUESS SUBROUTINE***
+;*************************
+
+start	ldaa	#0		;Start game logic
+
 	ldab	PTH		;get level from DIP switches
 	stab	level		;store
 
@@ -130,8 +132,6 @@ start	ldaa	#0
 	ldaa	level
 	jsr	sub_rng
 
-	;;ldd	#code		;Load level selected message
-	;;jsr	[printf,pcr]	;Display message
 
 	ldx	#indx		;Put 3 minutes on the clock	
 	ldaa	#$03	
@@ -141,34 +141,34 @@ start	ldaa	#0
 	ldaa	#$00	
 	staa	3,x
 
-	ldaa	#$00
+	ldaa	#$00		;Ensure gameover is not set.
 	staa	gameov
 
-	ldd	#rstspd
+	ldd	#rstspd		;Ensure speaker beep settings are set to inital setting
 	std	spkrst
 
-	ldd	#rstspd
+	ldd	#rstspd		;Ensure speaker beep settings are set to inital setting
 	std	skrstb
 
-	movb	$01, spkenb
+	movb	$01, spkenb	;Enable the speaker login in RTI
 	
 
-kg	ldd	#promp		;Load code prompt message
-	jsr	[printf,pcr]	;Display message
+kg	ldd	#promp			;Load code prompt message
+	jsr	[printf,pcr]		;Display message
 	
-	ldd	#inbuflen	;Load buffer length
-	pshd			;Put it on the stack
-	ldd	#guess		;Load gues
+	ldd	#inbuflen		;Load buffer length
+	pshd				;Put it on the stack
+	ldd	#guess			;Load guess
 	call	[getcmdline,pcr]
-	leas	2,sp
+	leas	2,sp			;Reset stack after call
 	
-	ldd	#endline
+	ldd	#endline		;Print endline after loading guess
 	jsr	[printf,pcr]
 	
 	
-	ldaa	gameov
+	ldaa	gameov		
 	cmpa	#$1		;If gameov 1, we done. No more chances.
-	beq	lose
+	beq	lose		;Force game to end if the game over flag has been set.
 
 	ldd	#guess
 	jsr	checklen	;check length of guess
@@ -620,47 +620,29 @@ spko	bset	PTT, BIT5	;If the bit was clear, set it.
 
 spkd	
 
-	ldx	spkrst
+	ldx	spkrst		;Decrement the speaker reset count
 	dex
 	stx	spkrst
 
-	cpx	#$0
-	bne	clkstt
+	cpx	#$0		;If the speaker reset count is not zero...
+	bne	clkstt		;Jump to the clkstt label to manage 7 segment display
 
-	ldx	skrstb
-	cpx	#timdcy
-	ble	posts
+	ldx	skrstb		;Otherwise, load the value to reset the count to for the speaker
+	cpx	#timdcy		;Make sure, we are not less than the decrement value
+	ble	posts		;If we are less than that value, continue to reset other speaker counts
 
-	exg	D,X
+	exg	D,X		;Decrement the reset value
 	subd	#timdcy
-	exg	D,X
-posts	stx	skrstb	
-	stx	spkrst
+	exg	D,X		
+posts	stx	skrstb		;Store X to the speaker reset base value
+	stx	spkrst		;Store X to the speaker count value
 	
 
-	ldd	spkbas	;Reset the speaker timer
+	ldd	spkbas		;Reset the speaker count
 	std	spkcnt
-	
-
-;	ldd	spkrst
-;	subd	#1
-;	std	spkrst
-;	
-;	ldy	spkrst
-;	cpy	#$00
-;
-;	bne	clkstt
-;
-;	ldd	spkbas	;Reset the speaker timer
-;	std	spkcnt
-;
-;	ldd	skrstb
-;	subd	#9
-;	std	spkrst
-;	std	skrstb
 
 
-clkstt	bset	CRGFLG, #$80
+clkstt	bset	CRGFLG, #$80	
 	ldaa	smtst
 	deca
 	staa	smtst
@@ -669,30 +651,31 @@ clkstt	bset	CRGFLG, #$80
 	ldaa	#smtm
 	staa	smtst
 
-cont	ldy	cstart
+cont	ldy	cstart		;The count needs to be decremented.
 	dey
+	sty	cstart		;Decrement and store.
+	cpy	#$0		;Are we at zero?
+	bne	cntu		;No, continue
+	ldy	#crtn		;Yes, reset cstart count
 	sty	cstart
-	cpy	#$0
-	bne	cntu
-	ldy	#crtn
-	sty	cstart
-	jsr	decrement
+	jsr	decrement	;Decrement 7 segment display.
 	
 
 
-cntu	movb	#%11111111,PTP
-	ldx	#arrb
-	ldy	#indx
-	ldab	digit
-	ldaa	#0
+cntu	movb	#%11111111,PTP	;Turn off port P to turn off 7 segment while changing values
+	ldx	#arrb		;Load the array of 7 segment values.
+	ldy	#indx		;Load the array of current 7 segment block values
+	ldab	digit		;Load the current block we are on for the 7 segment display.
+	ldaa	#0		
 	ldaa	d,y
-	staa	segpt
+	;staa	segpt
 	ldab	a,x
-	stab	curchr
-	movb	curchr,PORTB
-	ldaa	digit
-check0	cmpa	#0
-	beq	ptp0
+	stab	curchr		;Store the current character displayed
+	movb	curchr,PORTB	;Store the current character displayed to PORT B
+	ldaa	digit		;Load the current 7 segment display block we are on.
+
+check0	cmpa	#0		;Compare the 7 segment digit and turn on the currect bit in Port P
+	beq	ptp0		
 	cmpa	#1
 	beq	ptp1
 	cmpa	#2
@@ -700,21 +683,21 @@ check0	cmpa	#0
 	cmpa	#3
 	beq	ptp3
 	bra	done
-ptp0	movb	#%11111110,PTP
+ptp0	movb	#%11111110,PTP	;Turn on 7 segment display 0
 	bra	done
-ptp1	movb	#%11111101,PTP
+ptp1	movb	#%11111101,PTP	;Turn on 7 segment display 1
 	bra	done
-ptp2	movb	#%11111011,PTP
+ptp2	movb	#%11111011,PTP	;Turn on 7 segment display 2
 	bra	done
-ptp3	movb	#%11110111,PTP
+ptp3	movb	#%11110111,PTP	;Turn on 7 segment display 3
 
-done	inc	digit
-	ldaa	digit
+done	inc	digit		;Increment the digit we are on for next look
+	ldaa	digit		;load the digit and see if we need reset.
 	cmpa	#4
 	bge	rstdig
 	bra	exit
-rstdig	movb	#0,digit
-exit	;bclr	PTT, BIT5
+rstdig	movb	#0,digit	;If the digit needs a reset, do so.
+exit	
 	rti
 
 
