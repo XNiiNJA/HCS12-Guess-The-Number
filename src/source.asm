@@ -81,8 +81,8 @@ sup	nop				;use this to setup anything
 	movb	#0,DDRH			;setup port H to input(dip switches)
 
 
-	movw	#$0001, cstart		;
-	bset	DDRB,$7F
+	movw	#$0001, cstart		;initializing starting counter 
+	bset	DDRB,$7F		;Enable neccessary bits for PORTB and PTP for OUTPUTS
 	movb	#%00001111,DDRP
 	sei				;disable Global Interrupt Masks
 	ldx	#RTI_isr			;pointer to isr
@@ -91,9 +91,9 @@ sup	nop				;use this to setup anything
 	ldaa	#$30			;set interrupt period
 	;ldaa	#$12
 	staa	RTICTL			;set RTI control reg
-	bset	CRGINT,#$80		;enable RTICTL				;
-	movb	#%11111111,PTP
-	movb	#%11111111,PORTB
+	bset	CRGINT,#$80		;enable RTICTL				
+	movb	#%11111111,PTP		;disable all PTP 
+	movb	#%11111111,PORTB	;initialize PORTB 
 
 
 	ldx	#indx			;Load the 7 segment display array
@@ -477,7 +477,7 @@ strng	ldd	$00
 
 
 ;main start **********
-	org	$1900		;Starting program at 3000
+	org	$1900		;Starting program at $1900
 	lds	#$3C00
 	
 	bset	DDRT, BIT5
@@ -488,7 +488,7 @@ strng	ldd	$00
 	ldd	#wel		;Load welcome message
 	sei
 	jsr	[printf,pcr]	;Print welcome message
-	cli
+	cli			
 mlop	ldd	#instc		;Load instruction message
 	
 	sei
@@ -505,7 +505,7 @@ mlop	ldd	#instc		;Load instruction message
 	cmpa	#chrY		;compare the input to Y
 	beq	st
 	cmpa	#chary
-	bne	quit		;brach to quit, will exit program
+	bne	quit		;branch to quit, will exit program
 	
 st	jsr	start		;jump to subrutine to start the game
 	bra	mlop		;
@@ -514,12 +514,12 @@ quit	movb	#%11111111,PTP
 	
 
 decrement
-	pshx
-	pshy	
+	pshx				;save timing counters for ISR before decrementing
+	pshy					
 
-	ldx	#indx
+	ldx	#indx			;load pointer to 'digit' index (which bit of PTP is set)
 
-	;First, check if we're at 0
+					;First, check if we're at 0 (all 3 digits=0?)
 	ldaa	$03, x
 	cmpa	#0
 	bne	stert
@@ -572,15 +572,15 @@ decone	dec	$03, x		;Decrement the ones place.
 	
 	movb	#$01, gameov	;If all are zero, it's game over!
 	
-decdd	puly			;Restore Y
-	pulx			;Restore X
+decdd	puly			;Restore Y count
+	pulx			;Restore X count
 
 	rts
 
 
 RTI_isr	
 
-	lda	spkenb
+	ldaa	spkenb		;check speaker on/off from last isr loop
 
 	cmpa	#$00
 	
