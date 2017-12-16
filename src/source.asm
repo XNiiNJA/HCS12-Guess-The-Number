@@ -53,8 +53,6 @@ crtn	equ	62			;The RTI inner counter start count
 
 cstart	dc.w	crtn			;The RTI inner counter
 smtst	dc.b	smtm			;The RTI outer counter
-;count	dc.b	0	TODO: Not used?		
-;segpt	dc.b	0	TODO: Not used?
 curchr	dc.b	0			;The current char to write to the current 7 seg display
 
 timdcy	equ	6			;How quickly does the beeper flatline?
@@ -64,10 +62,6 @@ spkrst	dc.w	rstspd			;The speaker reset current count
 skrstb	dc.w	rstspd			;The speaker current reset count
 
 spkbas	equ	200;240;480		;The length of one beep in RTI cycles
-
-;spkon	dc.w	spkbas	TODO: Not used?	
-
-;spkoff	dc.w	1922	TODO: Not used?
 
 spkcnt	dc.w	spkbas			;The current count for the speaker beep length
 
@@ -127,8 +121,8 @@ start	ldaa	#0		;Start game logic
 	jsr	[printf,pcr]	;Display message
 	leas	2,sp		;Take level off stack
 
-	;Load a random number into the system
-	ldx	#code
+	
+	ldx	#code		;Load a random number into the system
 	ldaa	level
 	jsr	sub_rng
 
@@ -174,13 +168,13 @@ kg	ldd	#promp			;Load code prompt message
 	jsr	checklen	;check length of guess
 	cmpb	level
 	
-	beq	godin
-	ldaa	#0
-	ldab	level
+	beq	godin		;If the length of the input is correct, jump to godin
+	ldaa	#0		;Otherwise, print the correct length.
+	ldab	level		;Load the level for output
 	pshd
-	ldd	#badinput
-	jsr	[printf,pcr]
-	leas	2,sp
+	ldd	#badinput	;Load the bad input prompt
+	jsr	[printf,pcr]	;Print
+	leas	2,sp		;Reset stack
 
 godin	ldx	#code
 	ldy	#guess
@@ -188,28 +182,24 @@ godin	ldx	#code
 	jsr	cprGuess	;compare guess to actuall
 	cmpb	level		;compare A to B
 	beq	win		;if equal code is guessed correctly
-	std	results
+	
+	std	results		;Load the results into D
 	ldaa	#0
 	ldab	results
 	pshd	
-	ldd	results
+	ldd	results		;Loading the results into D
 	ldaa	#0
 	pshd
-	ldd	#feedback
+	ldd	#feedback	;Print the feedback with results.
+	jsr	[printf,pcr]	;Print
+	leas	4,sp		;Correct stack pointer
+	ldd	#endline	;Print an endline
 	jsr	[printf,pcr]
-	leas	4,sp
-	ldd	#endline
-	jsr	[printf,pcr]
-	bra	kg
+	bra	kg		;Do a loop.
 
-win	;ldaa	#$00	
-	;staa	1,x
-	;ldaa	#$00	
-	;staa	2,x
-	;ldaa	#$00	
-	;staa	3,x
+win	
 
-	movb	$00, spkenb		;Disable beeper stuff
+	movb	$00, spkenb	;Disable beeper stuff
 
 	ldd	#winpromp
 	jsr	[printf,pcr]
@@ -224,12 +214,11 @@ lose	ldd	#losepromp
 	jsr	[printf,pcr]
 	jsr	[printf,pcr]
 
-	movb	$00, spkenb		;Disable beeper stuff
+	movb	$00, spkenb	;Disable beeper stuff
 
 	movb	$00, gameov
 
-
-stptm	ldx	#indx	
+stptm	ldx	#indx		;Reset the timer to 0	
 	ldaa	#$00	
 	staa	1,x
 	ldaa	#$00
@@ -270,7 +259,7 @@ cprGuess	nop		;(compare the entered guess against the actual)
 	pshY
 	leas	-2,sp		;lease 2 bytes for counts in stack
 	movb	#0,0,sp
-	movb	#0,1,sp	;initilize local counts
+	movb	#0,1,sp		;initilize local counts
 loop1	ldaa	1,x+		;load first num of actual
 	ldab	1,y+		;load first num of guess
 	cmpa	#0		;check for null byte
@@ -387,7 +376,7 @@ ascii_nm_off	equ 48
 
 sub_rng	pshx
 	
-	leas	-7, SP		;Creating 3 bytes for local variables
+	leas	-7, SP			;Creating 3 bytes for local variables
 
 	staa	local_rtn_ln, SP
 
@@ -397,7 +386,7 @@ sub_rng	pshx
 	
 	stx	local_str_ar, SP
 
-	ldd	cstart		;Load the seed into previous rng result
+	ldd	cstart			;Load the seed into previous rng result
 
 	stab	local_rng_rs, SP
 
@@ -418,17 +407,17 @@ strng	ldd	$00
 
 	ldab	#rng_a
 
-	mul	;Doing a multiply
+	mul				;Doing a multiply
 	
 	addd	#rng_c
 
 	ldx	#rng_m
 
-	idiv	;After div, remainder is in D. This is our result.
+	idiv				;After div, remainder is in D. This is our result.
 
 	ldx	local_str_ar, SP	;Load the string start address
 
-	dey	;Subtract string length to get index.
+	dey				;Subtract string length to get index.
 
 
 	;Currently:
@@ -438,17 +427,14 @@ strng	ldd	$00
 
 	stab	local_rng_rs, SP	;Store the result into memory	
 
-	TBA	;A is now the result
+	TBA				;A is now the result
 
 
-	exg	D,Y	;D is now [$00]:[index]
+	exg	D,Y			;D is now [$00]:[index]
 
-	;;ldaa	local_rng_rs, SP	
-
-	std	local_temp, SP; We need to save D to do some math.
-
+	std	local_temp, SP		; We need to save D to do some math.
 	
-	ldaa	#$0
+	ldaa	#$0			
 	ldab	local_rng_rs,SP
 
 	ldx	#max_r
@@ -465,23 +451,23 @@ strng	ldd	$00
 
 	;D is now [result]:[index]
 
-	adda	#ascii_nm_off	;Add the ASCII offset.
+	adda	#ascii_nm_off		;Add the ASCII offset.
 
-	staa	B, X  ;Load result into string
+	staa	B, X  			;Load result into string
 
-	suba	#ascii_nm_off	;Decrement the ASCII offset.
+	suba	#ascii_nm_off		;Decrement the ASCII offset.
 
 	stab	local_rtn_ln, SP	
 
-	cmpb	#$00  ;Is the current index 0?
+	cmpb	#$00  			;Is the current index 0?
 
-	bne	strng ;It is not, do a looping.	
+	bne	strng 			;It is not, do a looping.	
 
-	leas	+7, SP;Deallocate stack.
+	leas	+7, SP			;Deallocate stack.
 
-	pulx
+	pulx				;Pull X
 
-	rts
+	rts				;Return from subroutine
 
 
 
@@ -538,51 +524,51 @@ decrement
 	ldaa	$01, x
 	cmpa	#0
 	bne	stert
-	movb	#$01, gameov
+	movb	#$01, gameov	;If we have hit zero, it's game over.
 
-	bra	decdd
+	bra	decdd		;If we haven't started yet, we are at zero. End sub.
 
-stert	ldaa	$03, x
+stert	ldaa	$03, x		;Check if the ones are at 0.
 	cmpa	#0
-	beq	rstone
-	bra	decone
-rstone	ldaa	#$09
-	staa	$03, x
+	beq	rstone		;If we are, reset the ones.
+	bra	decone		;Otherwise, decrement the ones.
+rstone	ldaa	#$09		;Reseting the ones place.
+	staa	$03, x		;Store the ones place.
 
-	ldaa	$02, x
-	cmpa	#0
-	beq	rstten
-	deca		;Decrement 02
-	staa	$02, x	;Store
-	bra 	decdd	;Done
+	ldaa	$02, x		;Check the tens place
+	cmpa	#0		;Is it zero?
+	beq	rstten		;Yes, go to resetting tens place.
+	deca			;Otherwise, decrement tens
+	staa	$02, x		;Store the tens.
+	bra 	decdd		;Done
 rstten	
-	ldaa	#$05
-	staa	$02, x
+	ldaa	#$05		;Load 5 to reset the tens place
+	staa	$02, x		;Store A to reset tens.
 
-	ldaa	$01, x
-	cmpa	#0
-	bne	decmin
-	bra	decdd
+	ldaa	$01, x		;Load the minutes place.
+	cmpa	#0		;Is it zero?
+	bne	decmin		;If not, decrement the mins.
+	bra	decdd		;Otherwise, we are done.
 decmin	
-	dec	$01, x
-	bra	decdd
+	dec	$01, x		;Decrement the minutes place.
+	bra	decdd		;We are done.
 
-decone	dec	$03, x
+decone	dec	$03, x		;Decrement the ones place.
 
-	ldaa	$03, x	;Did we just go to zero? If so, game over.
-	cmpa	#0
-	bne	decdd
-	ldaa	$02, x
-	cmpa	#0
-	bne	decdd
-	ldaa	$01, x
-	cmpa	#0
-	bne	decdd
+	ldaa	$03, x		;Did we just go to zero? If so, game over.
+	cmpa	#0		;Comparting ones to zero...
+	bne	decdd		;If not zero, we're done
+	ldaa	$02, x		;Load tens place.
+	cmpa	#0		;Comparting tens to zero...
+	bne	decdd		;If not zero, we're done
+	ldaa	$01, x		;Load minutes place.
+	cmpa	#0		;Comparting mins to zero...
+	bne	decdd		;If not zero, we're done
 	
-	movb	#$01, gameov
+	movb	#$01, gameov	;If all are zero, it's game over!
 	
-decdd	puly
-	pulx
+decdd	puly			;Restore Y
+	pulx			;Restore X
 
 	rts
 
@@ -642,14 +628,14 @@ posts	stx	skrstb		;Store X to the speaker reset base value
 	std	spkcnt
 
 
-clkstt	bset	CRGFLG, #$80	
-	ldaa	smtst
-	deca
-	staa	smtst
-	cmpa	#$0
-	bne	cntu
-	ldaa	#smtm
-	staa	smtst
+clkstt	bset	CRGFLG, #$80	;Clearing the RTI Flag
+	ldaa	smtst		;load the current inner count
+	deca			;Decrement
+	staa	smtst		;Store
+	cmpa	#$0		;compare smtst zero?
+	bne	cntu		;Is it not zero?
+	ldaa	#smtm		;Yes it is, load smtm back to smtst
+	staa	smtst		;Store
 
 cont	ldy	cstart		;The count needs to be decremented.
 	dey
