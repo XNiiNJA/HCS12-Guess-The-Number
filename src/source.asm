@@ -1,3 +1,8 @@
+; ************************************************************************************
+; Authors: Grant Oberhauser, Grant Brewer, Tj Millis, Adam Heuermann
+; Description: 'Guess the Number' Game in HCS12 Assemble for the Dragon12-Plus2 Board 
+; ************************************************************************************
+
 #include "hcs12.inc"
 
 chrY	equ	$59	;The 'y' character for the game start prompt
